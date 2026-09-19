@@ -32,5 +32,11 @@
     "slug": "hide-the-shoes",
     "description": "You're on the school corridor with your shoes, hide your shoes from the Teachers, or else you wont make it.",
     "author": "SirMops123"
+  },
+  {
+    "name": "Final Stand",
+    "slug": "final-words",
+    "description": "this is a test",
+    "author": "casper"
   }
 ]
