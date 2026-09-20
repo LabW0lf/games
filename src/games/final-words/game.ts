@@ -10,7 +10,8 @@ import { ScoreDisplay } from '@engine/entity/scoreDisplay.ts';
 
 // ENTITIES
 class Border extends Entity {
-	public height: number = 5;
+	// you loose life here
+	public static height: number = 5;
 	constructor(
 		x: number,
 		y: number,
@@ -19,7 +20,7 @@ class Border extends Entity {
 		super(x, y, w, h);
 	}
 	update(dt: number) {
-		this.y -= dt;
+
 	}
 
 	render(r: Renderer) {
@@ -49,7 +50,6 @@ class Score extends Entity {
 			this.score_digits = String(this.score).length;
 		}
 
-		this.score += 0;
 	}
 
 	render(r: Renderer) {
@@ -60,8 +60,46 @@ class Score extends Entity {
 	}
 }
 
-class Level extends Entity {
-	lvl: number = 0;
+class Difficulty extends Entity {
+	difficulty: string[] = [
+		'very easy',
+		'easy',
+		'medium',
+		'hard',
+		'very hard',
+		'super hard',
+		'impossible',
+	];
+	atReachedLevel: number[] = [
+		5,   // easy words
+		10,  // easy words, easy math
+		25,  // easy & medium words, easy math, country flags
+		50,  // easy & medium & hard words, easy math, country flags
+		75,  // easy & medium & hard words, easy & medium math, country flags
+		100, // easy & medium & hard words, easy & medium & hard math, country flags
+	];
+
+	current = 0;
+	constructor(x: number, y: number, w: number, h: number) {
+		super(x, y, w, h);
+	}
+
+	update(dt: number) {
+		if (Level.lvl === this.atReachedLevel[this.current]) {
+			this.current += 1;
+		}
+	}
+
+	render(r: Renderer) {
+		r.advancedText(this.difficulty[this.current], this.x, this.y, config.theme.colors.dark_purple, {
+			textAlign: 'right',
+			textBaseline: 'middle',
+		});
+	}
+}
+
+export class Level extends Entity {
+	static lvl: number = 0;
 
 	constructor(
 		x: number,
@@ -76,12 +114,32 @@ class Level extends Entity {
 	}
 
 	render(r: Renderer) {
-		r.advancedText('LVL ' + String(this.lvl), this.x, this.y, config.theme.colors.purple, {
+		r.advancedText('LVL ' + String(Level.lvl), this.x, this.y, config.theme.colors.purple, {
 			textAlign: 'right',
 			textBaseline: 'middle',
 		});
 	}
 }
+
+class Life extends Entity {
+	lives: number = 2;
+	streak: number = 10; // reach this number to earn a life
+	constructor(x: number, y: number, w: number, h: number) {
+		super(x, y, w, h);
+	}
+
+	update(dt: number) {
+
+	}
+
+	render(r: Renderer) {
+		r.advancedText('HP: ' + String(this.lives), this.x, this.y, config.theme.colors.red, {
+			textAlign: 'right',
+			textBaseline: 'middle',
+		});
+	}
+}
+
 
 // GAME SCENE
 type GameState = 'start' | 'running' | 'end';
@@ -98,6 +156,8 @@ class GameScene extends Scene {
 		this.entities.push(new Border(0,150, 240, 5));
 		this.entities.push(new Score(10,170,0,0));
 		this.entities.push(new Level(230, 170, 0, 0));
+		this.entities.push(new Life(120, 170, 0, 0));
+		this.entities.push(new Difficulty(230, 160, 0, 0));
 	}
 
 	render(r: Renderer) {
