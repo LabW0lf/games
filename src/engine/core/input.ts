@@ -40,8 +40,4 @@ export class Input {
 	onKeyUp(handler: (key: string) => void) {
 		this.keyUpHandlers.push(handler);
 	}
-
-	toString(): string {
-		return [...this.keys].join('');
-	}
 }
