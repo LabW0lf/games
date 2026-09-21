@@ -1,4 +1,4 @@
-import  { type Renderer } from '@engine/core/renderer.ts';
+import { type Renderer } from '@engine/core/renderer.ts';
 import { config } from '@engine/config.ts';
 import { Entity } from '@engine/entity/entity.ts';
 import { Scene } from '@engine/scenes/scene.ts';
@@ -11,11 +11,7 @@ import type { AssetLoader } from '@engine/assets/assetloader.ts';
 class Border extends Entity {
 	// you loose life here
 	public static height: number = 148;
-	constructor(
-		x: number,
-		y: number,
-		w: number,
-		h: number) {
+	constructor(x: number, y: number, w: number, h: number) {
 		super(x, y, w, h);
 	}
 
@@ -28,24 +24,18 @@ class Score extends Entity {
 	score: number = 0;
 	score_digits: number = String(this.score).length;
 
-	constructor(
-		x: number,
-		y: number,
-		w: number,
-		h: number,
-	) {
+	constructor(x: number, y: number, w: number, h: number) {
 		super(x, y, w, h);
 	}
 
 	update(dt: number) {
 		// move score number to the right after every new digit is reached
 		if (String(this.score).length > this.score_digits) {
-			for (let i = 0; i < (String(this.score).length - this.score_digits); i++) {
+			for (let i = 0; i < String(this.score).length - this.score_digits; i++) {
 				this.x += 4;
 			}
 			this.score_digits = String(this.score).length;
 		}
-
 	}
 
 	render(r: Renderer) {
@@ -67,11 +57,11 @@ class Difficulty extends Entity {
 		'impossible',
 	];
 	atReachedLevel: number[] = [
-		5,   // easy words
-		10,  // easy words, easy math
-		25,  // easy & medium words, easy math, country flags
-		50,  // easy & medium & hard words, easy math, country flags
-		75,  // easy & medium & hard words, easy & medium math, country flags
+		5, // easy words
+		10, // easy words, easy math
+		25, // easy & medium words, easy math, country flags
+		50, // easy & medium & hard words, easy math, country flags
+		75, // easy & medium & hard words, easy & medium math, country flags
 		100, // easy & medium & hard words, easy & medium & hard math, country flags
 	];
 
@@ -103,17 +93,11 @@ class Difficulty extends Entity {
 export class Level extends Entity {
 	static lvl: number = 0;
 
-	constructor(
-		x: number,
-		y: number,
-		w: number,
-		h: number,
-	) {
+	constructor(x: number, y: number, w: number, h: number) {
 		super(x, y, w, h);
 	}
 
-	update(dt: number) {
-	}
+	update(dt: number) {}
 
 	render(r: Renderer) {
 		r.advancedText('LVL ' + String(Level.lvl), this.x, this.y, config.theme.colors.purple, {
@@ -128,8 +112,6 @@ export class Life extends Entity {
 	static streak: number = 0; // reach 10 to earn a life
 	constructor(x: number, y: number, w: number, h: number) {
 		super(x, y, w, h);
-
-
 	}
 
 	update(dt: number) {
@@ -295,8 +277,6 @@ export class FallingWords extends Entity {
 			}
 		}
 	}
-
-	timer = 0;
 	update(dt: number) {
 		this.y += this.speed * dt;
 
@@ -344,7 +324,6 @@ export class GameOver extends Entity {
 	isRed = false;
 	color = config.theme.colors.white;
 	update(delta: number) {
-
 		this.timer += delta;
 		if (this.timer >= 1) {
 			if (this.isRed) {
@@ -358,7 +337,7 @@ export class GameOver extends Entity {
 	}
 
 	render(r: Renderer) {
-		r.drawRect(0,0,240,180, config.theme.colors.dark_gray);
+		r.drawRect(0, 0, 240, 180, config.theme.colors.dark_gray);
 		r.advancedText('GAME OVER', 120, 90, this.color, { textAlign: 'center' });
 	}
 }
@@ -393,20 +372,18 @@ export class GameScene extends Scene {
 		let text = 'text';
 		let supercharged = false;
 
-
 		if (Difficulty.current === 0) {
 			text = FallingWords.easy_words[random_text];
 		}
 
-
 		// if text is too far on the right
-		if ((random_x + text.length/2*7) > max) {
-			random_x = max - text.length/2*7;
+		if (random_x + (text.length / 2) * 7 > max) {
+			random_x = max - (text.length / 2) * 7;
 		}
 
 		// if text is too far on the left
-		if ((random_x - text.length/2*7) < min) {
-			random_x = min + text.length/2*7;
+		if (random_x - (text.length / 2) * 7 < min) {
+			random_x = min + (text.length / 2) * 7;
 		}
 
 		if (supercharge_number === 1) {
@@ -442,7 +419,7 @@ export class GameScene extends Scene {
 	static game_over() {
 		this.gamestate = 'end';
 
-		GameScene.entities.push(new GameOver(0,0,0,0));
+		GameScene.entities.push(new GameOver(0, 0, 0, 0));
 
 		FinalStand.disable_reset = false;
 	}
