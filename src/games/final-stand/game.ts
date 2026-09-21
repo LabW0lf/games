@@ -7,6 +7,17 @@ import { Game } from '@engine/core/game.ts';
 import { MenuScene } from '@engine/scenes/menuScene.ts';
 import type { AssetLoader } from '@engine/assets/assetloader.ts';
 
+// important global variables:
+
+// Border.height;
+//
+
+export class CHEATS {
+	static GOTHMODE: boolean = false;
+	static SONIC: boolean = false;
+
+}
+
 // ENTITIES
 class Border extends Entity {
 	// you loose life here
@@ -15,31 +26,42 @@ class Border extends Entity {
 		super(x, y, w, h);
 	}
 
+	update() {
+		Border.height = this.y;
+	}
+
 	render(r: Renderer) {
 		r.drawRect(this.x, this.y, this.w, this.h, config.theme.colors.yellow);
 	}
 }
 
-class Score extends Entity {
-	score: number = 0;
-	score_digits: number = String(this.score).length;
+export class Score extends Entity {
+	static score: number = 0;
+	static last_score: number = Score.score;
+	score_digits: number = String(Score.score).length;
 
 	constructor(x: number, y: number, w: number, h: number) {
 		super(x, y, w, h);
 	}
 
-	update(dt: number) {
+	//////////////////////////////////////////////// LEVELING ////////////////////////////////////////
+	update() {
 		// move score number to the right after every new digit is reached
-		if (String(this.score).length > this.score_digits) {
-			for (let i = 0; i < String(this.score).length - this.score_digits; i++) {
+		if (String(Score.score).length > this.score_digits) {
+			for (let i = 0; i < String(Score.score).length - this.score_digits; i++) {
 				this.x += 4;
 			}
-			this.score_digits = String(this.score).length;
+			this.score_digits = String(Score.score).length;
+		}
+
+		if (Score.last_score + 60 === Score.score) {
+			Level.lvl += 1;
+			Score.last_score = Score.score;
 		}
 	}
 
 	render(r: Renderer) {
-		r.advancedText(String(this.score), this.x, this.y, config.theme.colors.white, {
+		r.advancedText(String(Score.score), this.x, this.y, config.theme.colors.white, {
 			textAlign: 'center',
 			textBaseline: 'middle',
 		});
@@ -47,7 +69,7 @@ class Score extends Entity {
 }
 
 class Difficulty extends Entity {
-	difficulty: string[] = [
+	static difficulty: string[] = [
 		'very easy',
 		'easy',
 		'medium',
@@ -70,15 +92,20 @@ class Difficulty extends Entity {
 		super(x, y, w, h);
 	}
 
-	update(dt: number) {
+	//////////////////////////////////////////////// LEVELING ////////////////////////////////////////
+	update() {
 		if (Level.lvl === this.atReachedLevel[Difficulty.current]) {
 			Difficulty.current += 1;
+			Border.height -= 5;
+			console.log('NEXT DIFFICULTY REACHED: ' + Difficulty.difficulty[Difficulty.current]);
+			console.log('INCREASED CHANCE FOR SUPERCHARGES: 1 in ' + GameScene.supercharge_odds);
+			console.log('HEIGHT INCREASED: ' + Border.height);
 		}
 	}
 
 	render(r: Renderer) {
 		r.advancedText(
-			this.difficulty[Difficulty.current],
+			Difficulty.difficulty[Difficulty.current],
 			this.x,
 			this.y,
 			config.theme.colors.dark_purple,
@@ -92,12 +119,19 @@ class Difficulty extends Entity {
 
 export class Level extends Entity {
 	static lvl: number = 0;
+	previous_lvl: number = 0;
 
 	constructor(x: number, y: number, w: number, h: number) {
 		super(x, y, w, h);
 	}
 
-	update(dt: number) {}
+	update() {
+		if (Level.lvl > this.previous_lvl && !CHEATS.SONIC) {
+			GameScene.spawn_per_second = GameScene.spawn_per_second * 0.986; // 1.04 speed at lvl 75
+			this.previous_lvl += 1;
+			console.log('NEW SPEED: ONE FALLING WORD EVERY ' + GameScene.spawn_per_second + ' seconds!');
+		}
+	}
 
 	render(r: Renderer) {
 		r.advancedText('LVL ' + String(Level.lvl), this.x, this.y, config.theme.colors.purple, {
@@ -114,13 +148,13 @@ export class Life extends Entity {
 		super(x, y, w, h);
 	}
 
-	update(dt: number) {
+	update() {
 		if (Life.streak >= 10) {
 			Life.lives += 1;
 			Life.streak = 0;
 		}
 
-		if (Life.lives <= 0) {
+		if (Life.lives === 0) {
 			GameScene.game_over();
 		}
 	}
@@ -134,7 +168,7 @@ export class Life extends Entity {
 }
 
 export class PlayerInput extends Entity {
-	enableTyping = true;
+	static enableTyping = true;
 	static text = '';
 	input: Input = new Input();
 	color = config.theme.colors.black;
@@ -142,7 +176,7 @@ export class PlayerInput extends Entity {
 	constructor(x: number, y: number, w: number, h: number) {
 		super(x, y, w, h);
 		this.input.onKeyDown((key) => {
-			if (this.enableTyping) {
+			if (PlayerInput.enableTyping) {
 				if (key.length === 1 && PlayerInput.text.length < 25) {
 					PlayerInput.text += key.toLowerCase();
 				}
@@ -157,7 +191,7 @@ export class PlayerInput extends Entity {
 		});
 	}
 
-	update(dt: number) {
+	update() {
 		if (PlayerInput.text.length >= 25) {
 			this.color = config.theme.colors.red;
 		} else {
@@ -176,8 +210,7 @@ export class PlayerInput extends Entity {
 export class FallingWords extends Entity {
 	text: string;
 	supercharged: boolean = false;
-	static universal_speed = 5;
-	speed: number = FallingWords.universal_speed;
+	static universal_speed = 15; //////////////////// UNIVERSAL SPEED /////////////////////
 	static arena: string[] = [];
 
 	// ARRAYS
@@ -257,12 +290,29 @@ export class FallingWords extends Entity {
 	}
 
 	static isHit(input: string) {
-		console.log('input: ' + input);
+		console.log('ENTERED: ' + input);
+
+		// cheatcodes
+		if (input === 'gothmode') {
+			CHEATS.GOTHMODE = !CHEATS.GOTHMODE;
+			console.log('TOGGLED GOTHMODE: ' + CHEATS.GOTHMODE);
+		}
+		if (input === 'sonic') {
+
+			FallingWords.universal_speed = 120;
+			GameScene.spawn_per_second = 0.5;
+
+			if (CHEATS.SONIC) {
+				FallingWords.universal_speed = 15;
+				GameScene.spawn_per_second = Math.pow(3 * 0.986, Level.lvl);
+			}
+			CHEATS.SONIC = !CHEATS.SONIC;
+			console.log('TOGGLED SONIC: ' + CHEATS.SONIC);
+		}
+
 		for (let i = 0; i < FallingWords.arena.length; i++) {
 			if (input === FallingWords.arena[i]) {
 				console.log('HIT: ' + FallingWords.arena[i]);
-				console.log('CURRENT ARENA: ' + FallingWords.arena);
-
 				for (let j = 0; j < GameScene.entities.length; j++) {
 					const entity = GameScene.entities[j];
 					if (entity instanceof FallingWords && entity.text === input) {
@@ -273,21 +323,20 @@ export class FallingWords extends Entity {
 
 				FallingWords.arena.splice(i, 1);
 				Life.streak += 1;
+				Score.score += 20;
 				break;
 			}
 		}
 	}
 	update(dt: number) {
-		this.y += this.speed * dt;
+		this.y += FallingWords.universal_speed * dt;
 
 		if (this.supercharged) {
 			this.color = config.theme.colors.yellow;
-			this.speed = FallingWords.universal_speed * 5;
+			FallingWords.universal_speed = FallingWords.universal_speed * 3;
 		}
 
 		if (this.y >= Border.height) {
-			console.log(this.text + 'HAS CROSSED THE BORDER!');
-
 			for (let i = 0; i < FallingWords.arena.length; i++) {
 				if (this.text === FallingWords.arena[i]) {
 					for (let j = 0; j < GameScene.entities.length; j++) {
@@ -301,9 +350,14 @@ export class FallingWords extends Entity {
 					break;
 				}
 			}
-
-			Life.lives -= 1;
-			Life.streak = 0;
+			if (CHEATS.GOTHMODE) {
+				Score.score += 20;
+				return;
+			} else {
+				console.log(this.text + ' HAS CROSSED THE BORDER! STREAK RESET AND LOST 1 HP!');
+				Life.lives -= 1;
+				Life.streak = 0;
+			}
 		}
 	}
 
@@ -326,6 +380,7 @@ export class GameOver extends Entity {
 	update(delta: number) {
 		this.timer += delta;
 		if (this.timer >= 1) {
+			console.log(this.isRed);
 			if (this.isRed) {
 				this.color = config.theme.colors.red;
 			} else {
@@ -339,6 +394,7 @@ export class GameOver extends Entity {
 	render(r: Renderer) {
 		r.drawRect(0, 0, 240, 180, config.theme.colors.dark_gray);
 		r.advancedText('GAME OVER', 120, 90, this.color, { textAlign: 'center' });
+		r.advancedText('press ENTER to retry!', 120, 100, this.color, { textAlign: 'center' });
 	}
 }
 
@@ -362,7 +418,7 @@ export class GameScene extends Scene {
 	}
 
 	/////////////////////////////// SUPERCHARGE ODDS //////////////////////////////////////////////
-	static supercharge_odds = 20;
+	static supercharge_odds = 30;
 	addRandomFallingWord() {
 		const min = 15;
 		const max = 225;
@@ -373,9 +429,74 @@ export class GameScene extends Scene {
 		let text = 'text';
 		let supercharged = false;
 
-		if (Difficulty.current === 0) {
+		// very easy & easy
+		if (Difficulty.current <= 1) {
 			text = FallingWords.easy_words[random_text];
 		}
+
+		// medium
+		if (Difficulty.current === 2) {
+			// 10:20 chance
+			if (random_text >= 9) {
+				text = FallingWords.easy_words[random_text];
+			} else {
+				text = FallingWords.medium_words[random_text];
+			}
+			GameScene.supercharge_odds = 20;
+		}
+
+		// hard
+		if (Difficulty.current === 3) {
+			// 5:20 chance
+			if (random_text <= 4) {
+				text = FallingWords.easy_words[random_text];
+			}
+			// 10:20 chance
+			if (random_text >= 5 && random_text <= 15) {
+				text = FallingWords.medium_words[random_text];
+			}
+			// 5:20 chance
+			if (random_text >= 14) {
+				text = FallingWords.hard_words[random_text];
+			}
+			GameScene.supercharge_odds = 10;
+		}
+
+		// very hard
+		if (Difficulty.current === 4) {
+			// 5:20 chance
+			if (random_text <= 4) {
+				text = FallingWords.easy_words[random_text];
+			}
+			// 5:20 chance
+			if (random_text >= 5 && random_text <= 9) {
+				text = FallingWords.medium_words[random_text];
+			}
+			// 10:20 chance
+			if (random_text >= 10) {
+				text = FallingWords.hard_words[random_text];
+			}
+			GameScene.supercharge_odds = 5;
+		}
+
+		// impossible
+		if (Difficulty.current === 5) {
+			// 1:20 chance
+			if (random_text <= 1) {
+				text = FallingWords.easy_words[random_text];
+			}
+			// 4:20 chance
+			if (random_text >= 2 && random_text <= 5) {
+				text = FallingWords.medium_words[random_text];
+			}
+			// 15:20 chance
+			if (random_text >= 6) {
+				text = FallingWords.hard_words[random_text];
+			}
+			GameScene.supercharge_odds = 2;
+		}
+
+
 
 		// if text is too far on the right
 		if (random_x + (text.length / 2) * 7 > max) {
@@ -401,34 +522,42 @@ export class GameScene extends Scene {
 		}
 	}
 
-	timer = 0;
-	spawn_per_second = 2;
-	update(dt: number, input: Input) {
+	static timer = 0;
+	static spawn_per_second = 3; //////////////////////////////// ADD NEW AFTER THIS MANY SECONDS ////////////////////////////////
+	update(dt: number) {
 		if (GameScene.gamestate === 'running') {
 			for (const entity of GameScene.entities) {
 				entity.update(dt);
 			}
 		}
 
-		this.timer += dt;
-		if (this.timer >= this.spawn_per_second) {
+		GameScene.timer += dt;
+		if (GameScene.timer >= GameScene.spawn_per_second) {
 			this.addRandomFallingWord();
-			this.timer = 0;
+			GameScene.timer = 0;
 		}
 	}
 
 	static game_over() {
+		PlayerInput.enableTyping = false;
 		this.gamestate = 'end';
-
 		GameScene.entities.push(new GameOver(0, 0, 0, 0));
-
 		FinalStand.disable_reset = false;
+
+		const input: Input = new Input();
+		input.onKeyDown((key) => {
+			if (key === 'Enter') {
+
+				FinalStand.reset2();
+			}
+		});
 	}
 }
 
 // GAME
 export class FinalStand extends Game {
 	static disable_reset = false;
+	private static scene: GameScene;
 	constructor() {
 		super();
 
@@ -438,11 +567,15 @@ export class FinalStand extends Game {
 	}
 
 	reset() {
-		// no resets, only startup
+		// no resets until game over
 		if (!FinalStand.disable_reset) {
 			this.scene = new GameScene();
 			FinalStand.disable_reset = true;
 		}
+	}
+
+	static reset2() {
+		FinalStand.scene = new GameScene();
 	}
 
 	loadAssets(loader: AssetLoader) {
