@@ -361,7 +361,8 @@ export class GameScene extends Scene {
 		GameScene.entities.push(new PlayerInput(config.canvas_width / 2, 149, 0, 0));
 	}
 
-	static supercharge_odds = 2;
+	/////////////////////////////// SUPERCHARGE ODDS //////////////////////////////////////////////
+	static supercharge_odds = 20;
 	addRandomFallingWord() {
 		const min = 15;
 		const max = 225;
